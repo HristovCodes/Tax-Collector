@@ -1,5 +1,4 @@
 const fetch = require("node-fetch");
-const https = require("https");
 const stream = require("stream");
 const Discord = require("discord.js");
 
@@ -32,15 +31,25 @@ const filterData = (data) => {
   }
 };
 
-const formatEmbed = (data, args) => {
+const formatEmbed = (data, args, deposits) => {
   let filteredData = filterData(data);
+  let lastUserName = "";
   if (filteredData) {
     let taxevaders = [];
     filteredData.forEach((el) => {
-      if (isNaN(el)) return;
-      if (el == 0) return;
+      if (isNaN(el)) {
+        lastUserName = el;
+        return;
+      }
+      if (el <= 0) return;
 
-      if (+el < args[0]) {
+      if (deposits) {
+        if (+el >= args[0]) {
+          let index = filteredData.indexOf(lastUserName);
+          taxevaders.push(filteredData[index]);
+          taxevaders.push(filteredData[index + 1]);
+        }
+      } else if (+el < args[0]) {
         let index = filteredData.indexOf(el);
         taxevaders.push(filteredData[index - 1]);
         taxevaders.push(filteredData[index]);
@@ -68,6 +77,16 @@ const formatEmbed = (data, args) => {
   }
 };
 
+const getPageContent = async (message) => {
+  let response = await fetch(message.attachments.array()[0].url)
+    .then((res) => res.text())
+    .then((body) => {
+      return body;
+    });
+  if (!response) throw new Error(`Https error! Response: ${response.status}`);
+  return response;
+};
+
 module.exports = {
   name: "taxes",
   args: true,
@@ -76,47 +95,56 @@ module.exports = {
   permissions: "MENTION_EVERYONE",
   description: "Did you pay your taxes?",
   execute(message, args) {
+    // When someone uses the bot I'll see what they did for easier debugging
+    console.log(
+      `${message.member.user.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
+    );
+
     if (args[0]) {
-      let url = message.attachments.array()[0].url;
-      const chunks = [];
-      https
-        .get(url, (res) => {
-          res.on("readable", () => {
-            let chunk;
-            while ((chunk = res.read()) !== null) {
-              chunks.push(chunk);
-            }
-          });
-          res.on("end", () => {
-            console.log(
-              `${message.member.user.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
-            );
+      getPageContent(message).then((dropTaxes) => {
+        let filter = () => {
+          return true;
+        };
 
-            let taxEmbed = formatEmbed(chunks.join(""), args);
+        message.channel
+          .send("Paste silver deposit logs now, I'll wait 10 secs.")
+          .then(() => {
             message.channel
-              .send(taxEmbed[0])
-              .then((m) => m.react("✅"))
-              .then((m) => {
-                const filter = (reaction, user) => {
-                  return (
-                    reaction.emoji.name === "✅" &&
-                    user.id === message.author.id
-                  );
-                };
-
-                const collector = m.message.createReactionCollector(filter, {
-                  time: 10000,
+              .awaitMessages(filter, { max: 1, timer: 10000, errors: ["time"] })
+              .then((secondMessage) => {
+                getPageContent(secondMessage.first()).then((silverDeposits) => {
+                  console.log(formatEmbed(dropTaxes, args, false)[1]);
+                  console.log(formatEmbed(silverDeposits, args, true)[1]);
                 });
-                collector.on("collect", () => {
-                  if (taxEmbed[1].length >= 25)
-                    message.channel.send(taxEmbed[1].slice(48));
-                });
+              })
+              .catch((collected) => {
+                console.log(collected.size);
               });
           });
-        })
-        .on("error", (e) => {
-          console.log(e);
-        });
+
+        // create an embed message that will be displayed to the user
+        // let taxEmbed = formatEmbed(dropTaxes, args);
+        // message.channel
+        //   .send(taxEmbed[0])
+        //   .then((m) => m.react("✅"))
+        //   .then((m) => {
+        //     // filter to the listener. looks for a checkmark reaction from
+        //     // the user that's using the bot and no one else
+        //     const filter = (reaction, user) => {
+        //       return (
+        //         reaction.emoji.name === "✅" && user.id === message.author.id
+        //       );
+        //     };
+
+        //     const collector = m.message.createReactionCollector(filter, {
+        //       time: 10000,
+        //     });
+        //     collector.on("collect", () => {
+        //       if (taxEmbed[1].length >= 25)
+        //         return message.channel.send(taxEmbed[1].slice(48));
+        //     });
+        //   });
+      });
     }
   },
 };
