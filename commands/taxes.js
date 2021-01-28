@@ -53,14 +53,18 @@ const formatEmbed = (data, args) => {
 
     let y = 0;
     while (y <= taxevaders.length) {
-      if (!taxevaders[y]) {
-        break;
+      if (!taxevaders[y]) break;
+      else if (y >= 48) {
+        exampleEmbed.addField(
+          `And ${(taxevaders.length - y) / 2} more.`,
+          "React with ✅ to see them.",
+          false
+        );
       }
       exampleEmbed.addField(taxevaders[y], taxevaders[y + 1], true);
       y += 2;
     }
-    console.log("sent");
-    return exampleEmbed;
+    return { 0: exampleEmbed, 1: taxevaders };
   }
 };
 
@@ -68,7 +72,7 @@ module.exports = {
   name: "taxes",
   args: true,
   usage: "<min tax ammount>",
-  cooldown: 2,
+  cooldown: 30,
   permissions: "MENTION_EVERYONE",
   description: "Did you pay your taxes?",
   execute(message, args) {
@@ -84,7 +88,30 @@ module.exports = {
             }
           });
           res.on("end", () => {
-            return message.channel.send(formatEmbed(chunks.join(""), args));
+            console.log(
+              `${message.member.user.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
+            );
+
+            let taxEmbed = formatEmbed(chunks.join(""), args);
+            message.channel
+              .send(taxEmbed[0])
+              .then((m) => m.react("✅"))
+              .then((m) => {
+                const filter = (reaction, user) => {
+                  return (
+                    reaction.emoji.name === "✅" &&
+                    user.id === message.author.id
+                  );
+                };
+
+                const collector = m.message.createReactionCollector(filter, {
+                  time: 10000,
+                });
+                collector.on("collect", () => {
+                  if (taxEmbed[1].length >= 25)
+                    message.channel.send(taxEmbed[1].slice(48));
+                });
+              });
           });
         })
         .on("error", (e) => {
