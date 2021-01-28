@@ -52,12 +52,12 @@ const formatEmbed = (data, args) => {
       .setTimestamp();
 
     let y = 0;
-    while (y < taxevaders.length) {
-      y += 2;
-      if (y >= 50) {
+    while (y <= taxevaders.length) {
+      if (!taxevaders[y]) {
         break;
       }
       exampleEmbed.addField(taxevaders[y], taxevaders[y + 1], true);
+      y += 2;
     }
     console.log("sent");
     return exampleEmbed;
@@ -68,7 +68,7 @@ module.exports = {
   name: "taxes",
   args: true,
   usage: "<min tax ammount>",
-  cooldown: 120,
+  cooldown: 2,
   permissions: "MENTION_EVERYONE",
   description: "Did you pay your taxes?",
   execute(message, args) {
