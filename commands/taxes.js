@@ -141,7 +141,12 @@ module.exports = {
       `${message.member.user.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
     );
 
-    if (args[0]) {
+    if (message.channel.name !== "taxes") {
+      return message.channel.send(
+        `You cannot use $taxes here or you are lacking the permission to do so. ${message.author}`
+      );
+    }
+    if (!isNaN(args[0])) {
       getPageContent(message).then((dropTaxes) => {
         let filter = () => {
           return true;
