@@ -2,7 +2,7 @@ const fetch = require("node-fetch");
 const stream = require("stream");
 const Discord = require("discord.js");
 
-const filterData = (data) => {
+const filterData = (data, args, deposits) => {
   if (data) {
     let list = data
       .toString()
@@ -27,16 +27,10 @@ const filterData = (data) => {
     while (i--) {
       filtered.splice((i + 1) * 3 - 3, 1);
     }
-    return filtered;
-  }
-};
 
-const formatEmbed = (data, args, deposits) => {
-  let filteredData = filterData(data);
-  let lastUserName = "";
-  if (filteredData) {
+    let lastUserName = "";
     let taxevaders = [];
-    filteredData.forEach((el) => {
+    filtered.forEach((el) => {
       if (isNaN(el)) {
         lastUserName = el;
         return;
@@ -45,36 +39,40 @@ const formatEmbed = (data, args, deposits) => {
 
       if (deposits) {
         if (+el >= args[0]) {
-          let index = filteredData.indexOf(lastUserName);
-          taxevaders.push(filteredData[index]);
-          taxevaders.push(filteredData[index + 1]);
+          let index = filtered.indexOf(lastUserName);
+          taxevaders.push(filtered[index]);
+          taxevaders.push(filtered[index + 1]);
         }
       } else if (+el < args[0]) {
-        let index = filteredData.indexOf(el);
-        taxevaders.push(filteredData[index - 1]);
-        taxevaders.push(filteredData[index]);
+        let index = filtered.indexOf(el);
+        taxevaders.push(filtered[index - 1]);
+        taxevaders.push(filtered[index]);
       }
     });
-    let exampleEmbed = new Discord.MessageEmbed()
-      .setColor("#009911")
-      .setTitle("🔪 Tax Evaders 🔪")
-      .setTimestamp();
-
-    let y = 0;
-    while (y <= taxevaders.length) {
-      if (!taxevaders[y]) break;
-      else if (y >= 48) {
-        exampleEmbed.addField(
-          `And ${(taxevaders.length - y) / 2} more.`,
-          "React with ✅ to see them.",
-          false
-        );
-      }
-      exampleEmbed.addField(taxevaders[y], taxevaders[y + 1], true);
-      y += 2;
-    }
-    return { 0: exampleEmbed, 1: taxevaders };
+    return taxevaders;
   }
+};
+
+const formatEmbed = (taxevaders) => {
+  let exampleEmbed = new Discord.MessageEmbed()
+    .setColor("#009911")
+    .setTitle("🔪 Tax Evaders 🔪")
+    .setTimestamp();
+
+  let y = 0;
+  while (y <= taxevaders.length) {
+    if (!taxevaders[y]) break;
+    else if (y >= 48) {
+      exampleEmbed.addField(
+        `And ${(taxevaders.length - y) / 2} more.`,
+        "React with ✅ to see them.",
+        false
+      );
+    }
+    exampleEmbed.addField(taxevaders[y], taxevaders[y + 1], true);
+    y += 2;
+  }
+  return exampleEmbed;
 };
 
 const getPageContent = async (message) => {
@@ -85,6 +83,15 @@ const getPageContent = async (message) => {
     });
   if (!response) throw new Error(`Https error! Response: ${response.status}`);
   return response;
+};
+
+const cleanupList = (taxes, deposits) => {
+  deposits.forEach((el) => {
+    if (taxes.includes(el) && isNaN(el)) {
+      taxes.splice(taxes.indexOf(el), 2);
+    }
+  });
+  return taxes;
 };
 
 module.exports = {
@@ -113,37 +120,49 @@ module.exports = {
               .awaitMessages(filter, { max: 1, timer: 10000, errors: ["time"] })
               .then((secondMessage) => {
                 getPageContent(secondMessage.first()).then((silverDeposits) => {
-                  console.log(formatEmbed(dropTaxes, args, false)[1]);
-                  console.log(formatEmbed(silverDeposits, args, true)[1]);
+                  let taxesList = filterData(dropTaxes, args, false);
+                  let depositsList = filterData(silverDeposits, args, true);
+                  let cleanedList = cleanupList(taxesList, depositsList);
+                  let finalEmbed = formatEmbed(cleanedList);
+
+                  message.channel
+                    .send(finalEmbed)
+                    .then((m) => m.react("✅"))
+                    .then((m) => {
+                      // filter to the listener. looks for a checkmark reaction from
+                      // the user that's using the bot and no one else
+                      const filter = (reaction, user) => {
+                        return (
+                          reaction.emoji.name === "✅" &&
+                          user.id === message.author.id
+                        );
+                      };
+
+                      const collector = m.message.createReactionCollector(
+                        filter,
+                        {
+                          time: 10000,
+                        }
+                      );
+                      collector.on("collect", () => {
+                        if (cleanedList.length >= 25) {
+                          m.message.reactions
+                            .removeAll()
+                            .catch((e) =>
+                              console.log("Failed to remove emojis", e)
+                            );
+                          return message.channel.send(
+                            formatEmbed(cleanedList.slice(48))
+                          );
+                        }
+                      });
+                    });
                 });
               })
               .catch((collected) => {
                 console.log(collected.size);
               });
           });
-
-        // create an embed message that will be displayed to the user
-        // let taxEmbed = formatEmbed(dropTaxes, args);
-        // message.channel
-        //   .send(taxEmbed[0])
-        //   .then((m) => m.react("✅"))
-        //   .then((m) => {
-        //     // filter to the listener. looks for a checkmark reaction from
-        //     // the user that's using the bot and no one else
-        //     const filter = (reaction, user) => {
-        //       return (
-        //         reaction.emoji.name === "✅" && user.id === message.author.id
-        //       );
-        //     };
-
-        //     const collector = m.message.createReactionCollector(filter, {
-        //       time: 10000,
-        //     });
-        //     collector.on("collect", () => {
-        //       if (taxEmbed[1].length >= 25)
-        //         return message.channel.send(taxEmbed[1].slice(48));
-        //     });
-        //   });
       });
     }
   },
