@@ -2,7 +2,7 @@ const fetch = require("node-fetch");
 const stream = require("stream");
 const Discord = require("discord.js");
 
-const filterData = (data, args, deposits) => {
+const filterData = (data, tax, deposits) => {
   if (data) {
     let list = data
       .toString()
@@ -38,12 +38,12 @@ const filterData = (data, args, deposits) => {
       if (el <= 0) return;
 
       if (deposits) {
-        if (+el >= args[0]) {
+        if (+el >= tax) {
           let index = filtered.indexOf(lastUserName);
           taxevaders.push(filtered[index]);
           taxevaders.push(filtered[index + 1]);
         }
-      } else if (+el < args[0]) {
+      } else if (+el < tax) {
         let index = filtered.indexOf(el);
         taxevaders.push(filtered[index - 1]);
         taxevaders.push(filtered[index]);
@@ -94,6 +94,40 @@ const cleanupList = (taxes, deposits) => {
   return taxes;
 };
 
+const dmAllUsers = (usernames, m, tax) => {
+  let users = [];
+  let peopleWithNoDiscord = [];
+
+  // go through all the users in the list of taxevaders and get their GuildMember object
+  usernames.forEach((userEl) => {
+    if (isNaN(userEl)) {
+      users.push(
+        m.channel.guild.members.cache.find((user) => user.nickname === userEl)
+      );
+      if (!users[users.length - 1])
+        peopleWithNoDiscord.push(usernames[usernames.indexOf(userEl)]);
+    }
+  });
+
+  // go through all users and direct message each one
+  users.forEach((u) => {
+    // undefined means no match between nickname and users in the server
+    // or in other words he's not in the server or ign =/= nickname
+    if (u) {
+      u.user
+        .send(
+          `You need to deposit ${tax} silver in the guild bank, which you can find in the guild tab by pressing G. Please do so by the end of this week.\nIf for any reason you can't donate to the guild please talk to a higher up and sort thing out.`
+        )
+        .catch(() => peopleWithNoDiscord.push(u.nickname));
+    }
+  });
+  m.channel.send(
+    `These are the IGN's of people that I couldn't find in the discord or couldn't DM.\n${peopleWithNoDiscord.join(
+      ", "
+    )}`
+  );
+};
+
 module.exports = {
   name: "taxes",
   args: true,
@@ -120,8 +154,8 @@ module.exports = {
               .awaitMessages(filter, { max: 1, timer: 10000, errors: ["time"] })
               .then((secondMessage) => {
                 getPageContent(secondMessage.first()).then((silverDeposits) => {
-                  let taxesList = filterData(dropTaxes, args, false);
-                  let depositsList = filterData(silverDeposits, args, true);
+                  let taxesList = filterData(dropTaxes, args[0], false);
+                  let depositsList = filterData(silverDeposits, args[0], true);
                   let cleanedList = cleanupList(taxesList, depositsList);
                   let finalEmbed = formatEmbed(cleanedList);
 
@@ -151,16 +185,18 @@ module.exports = {
                             .catch((e) =>
                               console.log("Failed to remove emojis", e)
                             );
-                          return message.channel.send(
+
+                          message.channel.send(
                             formatEmbed(cleanedList.slice(48))
+                          );
+                          dmAllUsers(cleanedList, message, args[0]);
+                          return message.channel.send(
+                            "We are done thanks for using **Tax Collector**. If you need help or have questions talk to @Hristov#8038"
                           );
                         }
                       });
                     });
                 });
-              })
-              .catch((collected) => {
-                console.log(collected.size);
               });
           });
       });
