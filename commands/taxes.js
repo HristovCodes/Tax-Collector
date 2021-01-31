@@ -95,37 +95,65 @@ const cleanupList = (taxes, deposits) => {
 };
 
 const dmAllUsers = (usernames, m, tax) => {
-  let users = [];
-  let peopleWithNoDiscord = [];
+  m.client.guilds
+    .fetch("700374713549193287")
+    .then((guild) =>
+      guild.members
+        .fetch()
+        .then((members) => {
+          let users = [];
 
-  // go through all the users in the list of taxevaders and get their GuildMember object
-  usernames.forEach((userEl) => {
-    if (isNaN(userEl)) {
-      users.push(
-        m.channel.guild.members.cache.find((user) => user.nickname === userEl)
-      );
-      if (!users[users.length - 1])
-        peopleWithNoDiscord.push(usernames[usernames.indexOf(userEl)]);
-    }
-  });
+          // go through all the users in the list of taxevaders and get their GuildMember object
+          usernames.forEach((userEl) => {
+            if (isNaN(userEl)) {
+              members.array().forEach((userObject) => {
+                if (userObject.nickname) {
+                  if (userObject.nickname.includes(userEl)) {
+                    users.push(userObject);
+                  } else if (userObject.user.username == userEl) {
+                    users.push(userObject);
+                  }
+                } else if (userObject.user.username == userEl) {
+                  users.push(userObject);
+                }
+              });
+            }
+          });
 
-  // go through all users and direct message each one
-  users.forEach((u) => {
-    // undefined means no match between nickname and users in the server
-    // or in other words he's not in the server or ign =/= nickname
-    if (u) {
-      u.user
-        .send(
-          `You need to deposit ${tax} silver in the guild bank, which you can find in the guild tab by pressing G. Please do so by the end of this week.\nIf for any reason you can't donate to the guild please talk to a higher up and sort thing out.`
-        )
-        .catch(() => peopleWithNoDiscord.push(u.nickname));
-    }
-  });
-  m.channel.send(
-    `These are the IGN's of people that I couldn't find in the discord or couldn't DM.\n${peopleWithNoDiscord.join(
-      ", "
-    )}`
-  );
+          users.forEach((u) => {
+            if (u.nickname) {
+              if (usernames.includes(u.nickname))
+                usernames.splice(usernames.indexOf(u.nickname), 2);
+              else if (usernames.includes(u.user.username))
+                usernames.splice(usernames.indexOf(u.user.username), 2);
+            } else if (usernames.includes(u.user.username))
+              usernames.splice(usernames.indexOf(u.user.username), 2);
+          });
+
+          let peopleIcouldntDM = [];
+          let noDiscord = usernames.filter((el) => isNaN(el));
+
+          // go through all users and direct message each one
+          users.array().forEach((u) => {
+            // undefined means no match between nickname and users in the server
+            // or in other words he's not in the server or ign =/= nickname
+            u.user
+              .send(
+                `You need to deposit ${tax} silver in the guild bank, which you can find in the guild tab by pressing G. Please do so by the end of this week.\nIf for any reason you can't donate to the guild please talk to a higher up and sort thing out.`
+              )
+              .catch(() =>
+                peopleIcouldntDM.push(u.nickname ? u.nickname : u.user.username)
+              );
+          });
+          m.channel.send(
+            `These are the IGN's of people that I couldn't find in the discord or don't match their in game name.\n${noDiscord.join(
+              ", "
+            )}\nThe people that have DM's off: ${peopleIcouldntDM.join(", ")}`
+          );
+        })
+        .catch(console.error)
+    )
+    .catch(console.error);
 };
 
 module.exports = {
@@ -133,7 +161,7 @@ module.exports = {
   args: true,
   usage: "<min tax ammount>",
   cooldown: 30,
-  permissions: "MENTION_EVERYONE",
+  permissions: "",
   description: "Did you pay your taxes?",
   execute(message, args) {
     // When someone uses the bot I'll see what they did for easier debugging
@@ -141,7 +169,7 @@ module.exports = {
       `${message.member.user.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
     );
 
-    if (message.channel.name !== "taxes") {
+    if (message.channel.id !== "804718851903848448") {
       return message.channel.send(
         `You cannot use $taxes here or you are lacking the permission to do so. ${message.author}`
       );
@@ -153,10 +181,10 @@ module.exports = {
         };
 
         message.channel
-          .send("Paste silver deposit logs now, I'll wait 10 secs.")
+          .send("Paste silver deposit logs now, I'll wait 60 secs.")
           .then(() => {
             message.channel
-              .awaitMessages(filter, { max: 1, timer: 10000, errors: ["time"] })
+              .awaitMessages(filter, { max: 1, timer: 60000, errors: ["time"] })
               .then((secondMessage) => {
                 getPageContent(secondMessage.first()).then((silverDeposits) => {
                   let taxesList = filterData(dropTaxes, args[0], false);
@@ -180,17 +208,11 @@ module.exports = {
                       const collector = m.message.createReactionCollector(
                         filter,
                         {
-                          time: 10000,
+                          time: 60000,
                         }
                       );
                       collector.on("collect", () => {
                         if (cleanedList.length >= 25) {
-                          m.message.reactions
-                            .removeAll()
-                            .catch((e) =>
-                              console.log("Failed to remove emojis", e)
-                            );
-
                           message.channel.send(
                             formatEmbed(cleanedList.slice(48))
                           );

@@ -1,11 +1,17 @@
-const fs = require("fs");
-const Discord = require("discord.js");
-
 const { prefix, token } = require("./config.json");
+const Discord = require("discord.js");
+const { Client, Intents } = require("discord.js");
+const fs = require("fs");
 
-const cooldowns = new Discord.Collection();
-const client = new Discord.Client();
+let intents = new Intents(Intents.NON_PRIVILEGED);
+intents.add("GUILD_MEMBERS");
+const client = new Client({
+  ws: {
+    intents: intents,
+  },
+});
 client.commands = new Discord.Collection();
+const cooldowns = new Discord.Collection();
 
 // dynamically retrieves all command files
 const commandFiles = fs
@@ -21,6 +27,7 @@ for (const file of commandFiles) {
 
 client.once("ready", () => {
   client.user.setActivity("Check taxes with $taxes");
+  console.log("ready");
 });
 
 client.on("message", (message) => {
