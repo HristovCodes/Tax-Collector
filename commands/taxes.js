@@ -10,12 +10,22 @@ const filterData = (data, tax, deposits) => {
       .split('"');
 
     list = list.filter(Boolean).slice(4);
+
+    // exclude GM, RH from the list
+    list.forEach((el) => {
+      if (el === "Guild Master") {
+        let i = list.indexOf("Guild Master");
+        list.splice(i - 2, 4);
+      } else if (el === "Right Hand") {
+        let i = list.indexOf("Right Hand");
+        list.splice(i - 2, 4);
+      }
+    });
+
     let filtered = list.filter(
       (n) =>
-        n !== "Guild Master" &&
         n !== "Guild Officer" &&
         n !== "Admin" &&
-        n !== "Right Hand" &&
         n !== "Recruiter" &&
         n !== "Gatherer" &&
         n !== "Inactive" &&
@@ -169,7 +179,10 @@ module.exports = {
       `${message.member.user.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
     );
 
-    if (message.channel.id !== "804718851903848448") {
+    if (
+      message.channel.id !== "804718851903848448" &&
+      message.channel.id !== "805423509174091778"
+    ) {
       return message.channel.send(
         `You cannot use $taxes here or you are lacking the permission to do so. ${message.author}`
       );
