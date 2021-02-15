@@ -144,7 +144,7 @@ const dmAllUsers = (usernames, m, tax) => {
           let noDiscord = usernames.filter((el) => isNaN(el));
 
           // go through all users and direct message each one
-          users.array().forEach((u) => {
+          users.forEach((u) => {
             // undefined means no match between nickname and users in the server
             // or in other words he's not in the server or ign =/= nickname
             u.user
@@ -184,7 +184,7 @@ module.exports = {
       message.channel.id !== "805423509174091778"
     ) {
       return message.channel.send(
-        `You cannot use $taxes here or you are lacking the permission to do so. ${message.author}`
+        `You cannot use \$${this.name} here or you are lacking the permission to do so. ${message.author}`
       );
     }
     if (!isNaN(args[0])) {
