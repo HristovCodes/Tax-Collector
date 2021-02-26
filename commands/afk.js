@@ -1,6 +1,7 @@
 const fetch = require("node-fetch");
 const stream = require("stream");
 const Discord = require("discord.js");
+const firebase = require("../firebase.js");
 
 function calculateDate(weeks) {
   let result = new Date();
@@ -56,6 +57,7 @@ module.exports = {
             content +
               `\n${args[0]} ${args[1]} weeks | ${calculateDate(args[1])}`
           );
+          firebase.addAfk(message.guild.id, args[0], calculateDate(args[1]));
         }
       } else {
         message.channel
@@ -64,7 +66,10 @@ module.exports = {
               args[1]
             )}`
           )
-          .then((m) => m.pin());
+          .then((m) => {
+            m.pin();
+            firebase.addAfk(message.guild.id, args[0], calculateDate(args[1]));
+          });
       }
     });
   },
