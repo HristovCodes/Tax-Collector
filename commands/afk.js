@@ -45,32 +45,38 @@ module.exports = {
       );
     }
 
+    let id = Array.from(args[0])
+      .filter((e) => !isNaN(e))
+      .join("");
+    firebase.addAfk(message.guild.id, id, calculateDate(args[1]), args[1]);
+
     message.channel.messages.fetchPinned().then((pinned) => {
-      let botMessage = pinned.find((m) =>
-        m.content.includes("Inactive people:")
-      );
-      if (botMessage) {
-        let content = botMessage.content;
-        if (content.includes(args[0])) message.delete();
-        else {
-          botMessage.edit(
-            content +
-              `\n${args[0]} ${args[1]} weeks | ${calculateDate(args[1])}`
+      firebase.database
+        .ref(message.guild.id)
+        .once("value")
+        .then((ref) => {
+          let data = Object.values(ref.val()).map(
+            (e) => `<@!${e.afkName}> for ${e.afkPeriod} weeks | ${e.afkDate}`
           );
-          firebase.addAfk(message.guild.id, args[0], calculateDate(args[1]));
-        }
-      } else {
-        message.channel
-          .send(
-            `Inactive people:\n${args[0]} ${args[1]} weeks | ${calculateDate(
-              args[1]
-            )}`
-          )
-          .then((m) => {
-            m.pin();
-            firebase.addAfk(message.guild.id, args[0], calculateDate(args[1]));
-          });
-      }
+          console.log(data);
+
+          let botMessage = pinned.find((m) =>
+            m.content.includes("Inactive people:")
+          );
+          if (botMessage) {
+            let content = botMessage.content;
+            if (content.includes(args[0])) message.delete();
+            else {
+              botMessage.edit(`Inactive people:\n${data.join("\n")}`);
+            }
+          } else {
+            message.channel
+              .send(`Inactive people:\n${data.join("\n")}`)
+              .then((m) => {
+                m.pin();
+              });
+          }
+        });
     });
   },
 };
