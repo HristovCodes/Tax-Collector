@@ -1,6 +1,7 @@
 const fetch = require("node-fetch");
 const stream = require("stream");
 const Discord = require("discord.js");
+const firebase = require("../firebase.js");
 
 const filterData = (data, tax, deposits) => {
   if (data) {
@@ -108,60 +109,73 @@ const dmAllUsers = (usernames, m, tax) => {
   m.client.guilds
     .fetch("700374713549193287")
     .then((guild) =>
-      guild.members
-        .fetch()
-        .then((members) => {
-          let users = [];
+      guild.members.fetch().then((members) => {
+        let users = [];
 
-          // go through all the users in the list of taxevaders and get their GuildMember object
-          usernames.forEach((userEl) => {
-            if (isNaN(userEl)) {
-              members.array().forEach((userObject) => {
-                if (userObject.nickname) {
-                  if (userObject.nickname.includes(userEl)) {
-                    users.push(userObject);
-                  } else if (userObject.user.username == userEl) {
-                    users.push(userObject);
-                  }
+        // go through all the users in the list of taxevaders and get their GuildMember object
+        usernames.forEach((userEl) => {
+          if (isNaN(userEl)) {
+            members.array().forEach((userObject) => {
+              if (userObject.nickname) {
+                if (userObject.nickname.includes(userEl)) {
+                  users.push(userObject);
                 } else if (userObject.user.username == userEl) {
                   users.push(userObject);
                 }
-              });
-            }
-          });
+              } else if (userObject.user.username == userEl) {
+                users.push(userObject);
+              }
+            });
+          }
+        });
 
-          users.forEach((u) => {
-            if (u.nickname) {
-              if (usernames.includes(u.nickname))
-                usernames.splice(usernames.indexOf(u.nickname), 2);
-              else if (usernames.includes(u.user.username))
+        // if a user is in the AFK list remove him from the list of users to be DM'd
+        let afk = firebase.database.ref(`${guild.id}`);
+        afk
+          .once("value")
+          .then((snapshot) => {
+            afkData = snapshot.val();
+            let newUsers = users;
+            Object.values(afkData).forEach((el) => {
+              newUsers = newUsers.filter((u) => u.user.id != el.afkName);
+            });
+
+            // check for people that are not in the disord
+            users.forEach((u) => {
+              if (u.nickname) {
+                if (usernames.includes(u.nickname))
+                  usernames.splice(usernames.indexOf(u.nickname), 2);
+                else if (usernames.includes(u.user.username))
+                  usernames.splice(usernames.indexOf(u.user.username), 2);
+              } else if (usernames.includes(u.user.username))
                 usernames.splice(usernames.indexOf(u.user.username), 2);
-            } else if (usernames.includes(u.user.username))
-              usernames.splice(usernames.indexOf(u.user.username), 2);
-          });
+            });
 
-          let peopleIcouldntDM = [];
-          let noDiscord = usernames.filter((el) => isNaN(el));
+            let peopleIcouldntDM = [];
+            let noDiscord = usernames.filter((el) => isNaN(el));
 
-          // go through all users and direct message each one
-          users.forEach((u) => {
-            // undefined means no match between nickname and users in the server
-            // or in other words he's not in the server or ign =/= nickname
-            u.user
-              .send(
-                `You need to deposit ${tax} silver in the guild bank, which you can find in the guild tab by pressing G. Please do so by the end of this week.\nIf for any reason you can't donate to the guild please talk to a higher up and sort thing out.`
-              )
-              .catch(() =>
-                peopleIcouldntDM.push(u.nickname ? u.nickname : u.user.username)
-              );
-          });
-          m.channel.send(
-            `These are the IGN's of people that I couldn't find in the discord or don't match their in game name.\n${noDiscord.join(
-              ", "
-            )}\nThe people that have DM's off: ${peopleIcouldntDM.join(", ")}`
-          );
-        })
-        .catch(console.error)
+            // go through all users and direct message each one
+            newUsers.forEach((u) => {
+              // undefined means no match between nickname and users in the server
+              // or in other words he's not in the server or ign =/= nickname
+              u.user
+                .send(
+                  `You need to deposit ${tax} silver in the guild bank, which you can find in the guild tab by pressing G. Please do so by the end of this week.\nIf for any reason you can't donate to the guild please talk to a higher up and sort thing out.`
+                )
+                .catch(() =>
+                  peopleIcouldntDM.push(
+                    u.nickname ? u.nickname : u.user.username
+                  )
+                );
+            });
+            m.channel.send(
+              `These are the IGN's of people that I couldn't find in the discord or don't match their in game name.\n${noDiscord.join(
+                ", "
+              )}\nThe people that have DM's off: ${peopleIcouldntDM.join(", ")}`
+            );
+          })
+          .catch(console.error);
+      })
     )
     .catch(console.error);
 };
@@ -231,7 +245,7 @@ module.exports = {
                           );
                           dmAllUsers(cleanedList, message, args[0]);
                           return message.channel.send(
-                            "We are done thanks for using **Tax Collector**. If you need help or have questions talk to @Hristov#8038"
+                            "We are done thanks for using **Tax Collector**. If you need help or have questions talk to <@!416970292305461269>"
                           );
                         }
                       });
