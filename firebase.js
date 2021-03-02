@@ -14,12 +14,13 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
-let addAFK = (guild, name, date) => {
-  if (guild && name && date) {
+let addAFK = (guild, name, date, period) => {
+  if (guild && name && date && period) {
     let newPostKey = firebase.database().ref().child(guild).push().key;
     let data = {
       afkName: name,
       afkDate: date,
+      afkPeriod: period,
     };
     firebase.database().ref(`${guild}/${newPostKey}`).update(data);
   }
