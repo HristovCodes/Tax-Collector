@@ -1,7 +1,8 @@
-const { prefix, token } = require("./config.json");
 const Discord = require("discord.js");
 const { Client, Intents } = require("discord.js");
 const fs = require("fs");
+const prefix = "$";
+const token = process.argv[2];
 
 let intents = new Intents(Intents.NON_PRIVILEGED);
 intents.add("GUILD_MEMBERS");
