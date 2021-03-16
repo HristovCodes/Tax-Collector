@@ -35,7 +35,7 @@ module.exports = {
         `Mention the channel id you'd like to use as a reference.\n${message.author}`
       );
     }
-    let members = member.voice.channel.member;
+    let members = message.author.voice.channel.member;
     let filteredMembers = members.array.map((element) => {
       return element.bot ? null : element.username;
     });
