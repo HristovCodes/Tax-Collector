@@ -11,9 +11,9 @@ function calculateDate(weeks) {
 
 module.exports = {
   name: "split",
-  args: true,
-  usage: "<channel>",
-  cooldown: 2,
+  args: false,
+  usage: "",
+  cooldown: 15,
   permissions: "",
   description: "League time?",
   execute(message, args) {
@@ -24,40 +24,61 @@ module.exports = {
 
     if (
       message.guild.id !== "757911675352645644" &&
+      message.guild.id !== "700374713549193287" &&
+      message.guild.id !== "809702779064811550" &&
       message.channel.id !== "805423509174091778"
     ) {
       return message.channel.send(
         `You cannot use \$${this.name} here or you are lacking the permission to do so. ${message.author}`
       );
     }
-    if (!args[0]) {
-      return message.channel.send(
-        `Mention the channel id you'd like to use as a reference.\n${message.author}`
-      );
-    }
-    let members = message.author.voice.channel.member;
-    let filteredMembers = members.array.map((element) => {
+    let members = message.guild.member(message.author).voice.channel.members;
+    let filteredMembers = members.array().map((element) => {
       return element.bot ? null : element.username;
     });
 
-    let team1 = [];
-    let team2 = [];
+    if (filteredMembers.length <= 1) {
+      filteredMembers = [
+        "Spas",
+        "Dakata",
+        "Nigamz",
+        "Kukata",
+        "kriss",
+        "Hristov",
+        "Berk",
+        "iliqn",
+        "Dancho",
+        "Morde",
+      ];
+    }
+    let split = splitTeam(filteredMembers);
 
-    filteredMembers.array.forEach((element) => {
-      if (getRandomInt(2) === 0) {
-        if (team1.length === 5) team2.push(element);
-        else team1.push(element);
-      } else {
-        if (team2.length === 5) team1.push(element);
-        team2.push(element);
-      }
-    });
     message.channel.send(
-      `Team1:\n${team1.join(", ")}\nTeam2:\n${team2.join(", ")}`
+      `Team1:\n${split.team1.join(", ")}\nTeam2:\n${split.team2.join(", ")}`
     );
   },
 };
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * Math.floor(max));
+}
+
+function splitTeam(members) {
+  let team1 = [];
+  let team2 = [];
+  members.forEach((x) => {
+    const randN = getRandomInt(2);
+    if (randN === 0 && team1.length < 5) {
+      team1.push(x);
+    } else if (randN === 1 && team2.length < 5) {
+      team2.push(x);
+    } else {
+      if (team1.length === 5) {
+        team2.push(x);
+      } else if (team2.length === 5) {
+        team1.push(x);
+      }
+    }
+  });
+  return { team1: team1, team2: team2 };
 }

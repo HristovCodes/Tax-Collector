@@ -13,7 +13,7 @@ module.exports = {
   name: "afk",
   args: true,
   usage: "<user> <duration> <reason>",
-  cooldown: 2,
+  cooldown: 5,
   permissions: "",
   description: "Going on vacation?",
   execute(message, args) {
