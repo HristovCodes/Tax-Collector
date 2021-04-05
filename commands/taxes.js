@@ -7,10 +7,13 @@ const filterData = (data, tax, deposits) => {
   if (data) {
     let list = data
       .toString()
-      .replace(/[\t\n\r]/gm, "")
+      .replace(
+        /Guild Officer|Fricks Alt|Wallet Alt GM|Inactive|Recruiter|Admin|Gatherer|Rank|Player|Guild Role|Amount|[\t\n\r]|^"\d+"/gm,
+        ""
+      )
       .split('"');
 
-    list = list.filter(Boolean).slice(4);
+    list = list.filter(Boolean);
 
     // exclude GM, RH from the list
     list.forEach((el) => {
@@ -23,67 +26,53 @@ const filterData = (data, tax, deposits) => {
       }
     });
 
-    let filtered = list.filter(
-      (n) =>
-        n !== "Guild Officer" &&
-        n !== "Admin" &&
-        n !== "Recruiter" &&
-        n !== "Gatherer" &&
-        n !== "Inactive" &&
-        n !== "Wallet Alt GM" &&
-        n !== "Fricks Alt"
-    );
-    let i = Math.floor(filtered.length / 3);
-
-    while (i--) {
-      filtered.splice((i + 1) * 3 - 3, 1);
-    }
-
     let lastUserName = "";
     let taxevaders = [];
-    filtered.forEach((el) => {
+    list.forEach((el) => {
       if (isNaN(el)) {
         lastUserName = el;
         return;
       }
-      if (el <= 0) return;
+      if (el * 1 <= 0) {
+        return;
+      }
 
       if (deposits) {
         if (+el >= tax) {
-          let index = filtered.indexOf(lastUserName);
-          taxevaders.push(filtered[index]);
-          taxevaders.push(filtered[index + 1]);
+          let index = list.indexOf(lastUserName);
+          taxevaders.push(list[index]);
+          taxevaders.push(list[index + 1]);
         }
       } else if (+el < tax) {
-        let index = filtered.indexOf(el);
-        taxevaders.push(filtered[index - 1]);
-        taxevaders.push(filtered[index]);
+        let index = list.indexOf(el);
+        taxevaders.push(list[index - 1]);
+        taxevaders.push(list[index]);
       }
     });
     return taxevaders;
   }
 };
 
-const formatEmbed = (taxevaders) => {
-  let exampleEmbed = new Discord.MessageEmbed()
-    .setColor("#009911")
-    .setTitle("🔪 Tax Evaders 🔪")
-    .setTimestamp();
-
+const formatEmbed = (taxevaders, m) => {
   let y = 0;
-  while (y <= taxevaders.length) {
-    if (!taxevaders[y]) break;
-    else if (y >= 48) {
-      exampleEmbed.addField(
-        `And ${(taxevaders.length - y) / 2} more.`,
-        "React with ✅ to see them.",
-        false
-      );
+  while (taxevaders[y]) {
+    let embed = new Discord.MessageEmbed()
+      .setColor("#009911")
+      .setTitle("🔪 Tax Evaders 🔪")
+      .setTimestamp();
+
+    let temp = taxevaders.slice(y, y + 42);
+    let x = 0;
+    while (true) {
+      if (x >= 42 || !temp[x]) {
+        m.channel.send(embed);
+        break;
+      }
+      embed.addField(temp[x], temp[x + 1], true);
+      x += 2;
+      y += 2;
     }
-    exampleEmbed.addField(taxevaders[y], taxevaders[y + 1], true);
-    y += 2;
   }
-  return exampleEmbed;
 };
 
 const getPageContent = async (message) => {
@@ -217,10 +206,12 @@ module.exports = {
                   let taxesList = filterData(dropTaxes, args[0], false);
                   let depositsList = filterData(silverDeposits, args[0], true);
                   let cleanedList = cleanupList(taxesList, depositsList);
-                  let finalEmbed = formatEmbed(cleanedList);
+                  formatEmbed(cleanedList, message);
 
                   message.channel
-                    .send(finalEmbed)
+                    .send(
+                      "React with ✅ to notify (**private message**) all users."
+                    )
                     .then((m) => m.react("✅"))
                     .then((m) => {
                       // filter to the listener. looks for a checkmark reaction from
@@ -239,15 +230,10 @@ module.exports = {
                         }
                       );
                       collector.on("collect", () => {
-                        if (cleanedList.length >= 25) {
-                          message.channel.send(
-                            formatEmbed(cleanedList.slice(48))
-                          );
-                          dmAllUsers(cleanedList, message, args[0]);
-                          return message.channel.send(
-                            "We are done thanks for using **Tax Collector**. If you need help or have questions talk to <@!416970292305461269>"
-                          );
-                        }
+                        dmAllUsers(cleanedList, message, args[0]);
+                        return message.channel.send(
+                          "We are done thanks for using **Tax Collector**. If you need help or have questions talk to <@!416970292305461269>"
+                        );
                       });
                     });
                 });

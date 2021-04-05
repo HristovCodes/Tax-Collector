@@ -37,20 +37,6 @@ module.exports = {
       return element.bot ? null : element.username;
     });
 
-    if (filteredMembers.length <= 1) {
-      filteredMembers = [
-        "Spas",
-        "Dakata",
-        "Nigamz",
-        "Kukata",
-        "kriss",
-        "Hristov",
-        "Berk",
-        "iliqn",
-        "Dancho",
-        "Morde",
-      ];
-    }
     let split = splitTeam(filteredMembers);
 
     message.channel.send(
