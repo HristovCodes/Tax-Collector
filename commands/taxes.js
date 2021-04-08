@@ -16,15 +16,14 @@ const filterData = (data, tax, deposits) => {
     list = list.filter(Boolean);
 
     // exclude GM, RH from the list
-    list.forEach((el) => {
-      if (el === "Guild Master") {
-        let i = list.indexOf("Guild Master");
-        list.splice(i - 2, 4);
-      } else if (el === "Right Hand") {
-        let i = list.indexOf("Right Hand");
-        list.splice(i - 2, 4);
-      }
-    });
+    while (list.includes("Guild Master")) {
+      let i = list.indexOf("Guild Master");
+      list.splice(i - 1, 3);
+    }
+    while (list.includes("Right Hand")) {
+      let i = list.indexOf("Right Hand");
+      list.splice(i - 1, 3);
+    }
 
     let lastUserName = "";
     let taxevaders = [];
@@ -44,9 +43,9 @@ const filterData = (data, tax, deposits) => {
           taxevaders.push(list[index + 1]);
         }
       } else if (+el < tax) {
-        let index = list.indexOf(el);
-        taxevaders.push(list[index - 1]);
+        let index = list.indexOf(lastUserName);
         taxevaders.push(list[index]);
+        taxevaders.push(list[index + 1]);
       }
     });
     return taxevaders;
@@ -80,6 +79,9 @@ const getPageContent = async (message) => {
     .then((res) => res.text())
     .then((body) => {
       return body;
+    })
+    .catch((e) => {
+      return e;
     });
   if (!response) throw new Error(`Https error! Response: ${response.status}`);
   return response;
@@ -179,7 +181,7 @@ module.exports = {
   execute(message, args) {
     // When someone uses the bot I'll see what they did for easier debugging
     console.log(
-      `${message.member.user.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
+      `${message.author.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
     );
 
     if (
