@@ -24,7 +24,7 @@ Click the "Timeframe" dropdown and select last week. Now that the logs have load
 
 ![logs panel](https://i.imgur.com/kr8qe7Y.png)
 
-Now you can head back to discord and type in the respective channel `$afk <ammount>` and press CTRL+V which will paste the logs. If you do it right you will get a similar popup to mine. Now hit ENTER or click the Upload button and go back into the game again.
+Now you can head back to discord and type in the respective channel `$taxes <ammount>` and press CTRL+V which will paste the logs. If you do it right you will get a similar popup to mine. Now hit ENTER or click the Upload button and go back into the game again.
 
 ![discord message example](https://i.imgur.com/1pazYX9.png)
 
@@ -36,3 +36,10 @@ The bot will then respond with a message similar to this one. If you want everyo
 
 ![discord bot message](https://i.imgur.com/aKAGC9U.png)
 
+### Afk
+This command is extremely simple and straighforward. The image below should explain it better than I can with words.
+
+![discord bot message](https://i.imgur.com/djCylr4.png)
+
+### Split
+WIP
