@@ -6,7 +6,7 @@ const firebase = require("../firebase.js");
 function calculateDate(weeks) {
   let result = new Date();
   result.setDate(result.getDate() + weeks * 7);
-  return result.toLocaleDateString();
+  return result.toDateString();
 }
 
 module.exports = {
@@ -17,6 +17,7 @@ module.exports = {
   permissions: "",
   description: "Going on vacation?",
   execute(message, args) {
+    firebase.cleanupDates();
     // When someone uses the bot I'll see what they did for easier debugging
     console.log(
       `${message.member.user.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
@@ -45,38 +46,61 @@ module.exports = {
       );
     }
 
-    let id = Array.from(args[0])
-      .filter((e) => !isNaN(e))
-      .join("");
-    firebase.addAfk(message.guild.id, id, calculateDate(args[1]), args[1]);
+    firebase.pullData(`afk/${message.guild.id}`).then((res) => {
+      if (res) {
+        let data = res.map(
+          (e) => `<@!${e.afkName}> for ${e.afkPeriod} weeks | ${e.afkDate}`
+        );
+        if (data.join("").includes(args[0])) message.delete();
+        else {
+          message.channel.messages.fetchPinned().then((pinned) => {
+            let id = Array.from(args[0])
+              .filter((e) => !isNaN(e))
+              .join("");
 
-    message.channel.messages.fetchPinned().then((pinned) => {
-      firebase.database
-        .ref(message.guild.id)
-        .once("value")
-        .then((ref) => {
-          let data = Object.values(ref.val()).map(
-            (e) => `<@!${e.afkName}> for ${e.afkPeriod} weeks | ${e.afkDate}`
-          );
-          console.log(data);
+            let botMessage = pinned.find((m) =>
+              m.content.includes("Inactive people:")
+            );
 
-          let botMessage = pinned.find((m) =>
-            m.content.includes("Inactive people:")
-          );
-          if (botMessage) {
-            let content = botMessage.content;
-            if (content.includes(args[0])) message.delete();
-            else {
-              botMessage.edit(`Inactive people:\n${data.join("\n")}`);
+            if (botMessage) {
+              let content = botMessage.content;
+              if (content.includes(args[0])) message.delete();
+              else {
+                // if the user is not in the pinned message add him to the database and to the pinned message
+                firebase.addAfk(
+                  message.guild.id,
+                  id,
+                  calculateDate(args[1]),
+                  args[1]
+                );
+
+                botMessage.edit(
+                  `Inactive people:\n${args[0]} for ${
+                    args[1]
+                  } weeks | ${calculateDate(args[1])}\n${data.join("\n")}`
+                );
+              }
+            } else {
+              // if theres no message add the user to the database and make a message and pin it
+              firebase.addAfk(
+                message.guild.id,
+                id,
+                calculateDate(args[1]),
+                args[1]
+              );
+              message.channel
+                .send(
+                  `Inactive people:\n${args[0]} for ${
+                    args[1]
+                  } weeks | ${calculateDate(args[1])}\n${data.join("\n")}`
+                )
+                .then((m) => {
+                  m.pin();
+                });
             }
-          } else {
-            message.channel
-              .send(`Inactive people:\n${data.join("\n")}`)
-              .then((m) => {
-                m.pin();
-              });
-          }
-        });
+          });
+        }
+      }
     });
   },
 };

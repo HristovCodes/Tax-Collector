@@ -121,13 +121,11 @@ const dmAllUsers = (usernames, m, tax) => {
         });
 
         // if a user is in the AFK list remove him from the list of users to be DM'd
-        let afk = firebase.database.ref(`${guild.id}`);
-        afk
-          .once("value")
-          .then((snapshot) => {
-            afkData = snapshot.val();
+        firebase
+          .pullData(`afk/${guild.id}`)
+          .then((afkData) => {
             let newUsers = users;
-            Object.values(afkData).forEach((el) => {
+            afkData.forEach((el) => {
               newUsers = newUsers.filter((u) => u.user.id != el.afkName);
             });
 
@@ -179,6 +177,7 @@ module.exports = {
   permissions: "",
   description: "Did you pay your taxes?",
   execute(message, args) {
+    firebase.cleanupDates();
     // When someone uses the bot I'll see what they did for easier debugging
     console.log(
       `${message.author.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
