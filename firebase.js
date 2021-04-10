@@ -41,11 +41,11 @@ let pullData = async (path) => {
   }
 };
 
-let cleanupDates = () => {
-  pullData(`afk/${message.guild.id}`).then((data) => {
+let cleanupDates = (guildid) => {
+  pullData(`afk/${guildid}`).then((data) => {
     data.forEach((e) => {
       if (Date.now() > Date.parse(e.afkDate)) {
-        firebase.database.ref(`afk/${message.guild.id}/${e.id}`).remove();
+        firebase.database().ref(`afk/${guildid}/${e.id}`).remove();
       }
     });
   });
