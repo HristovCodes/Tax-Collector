@@ -58,6 +58,7 @@ const formatEmbed = (taxevaders, m) => {
     let embed = new Discord.MessageEmbed()
       .setColor("#009911")
       .setTitle("🔪 Tax Evaders 🔪")
+      .setFooter("Thanks for using the bot <3")
       .setTimestamp();
 
     let temp = taxevaders.slice(y, y + 42);
@@ -98,7 +99,7 @@ const cleanupList = (taxes, deposits) => {
 
 const dmAllUsers = (usernames, m, tax) => {
   m.client.guilds
-    .fetch("700374713549193287")
+    .fetch(m.guild.id)
     .then((guild) =>
       guild.members.fetch().then((members) => {
         let users = [];
@@ -173,25 +174,27 @@ module.exports = {
   name: "taxes",
   args: true,
   usage: "<min tax ammount>",
-  cooldown: 30,
+  cooldown: 60,
   permissions: "",
   description: "Did you pay your taxes?",
   execute(message, args) {
-    firebase.cleanupDates();
+    firebase.cleanupDates(message.guild.id);
     // When someone uses the bot I'll see what they did for easier debugging
     console.log(
       `${message.author.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
     );
 
-    if (
-      message.channel.id !== "804718851903848448" &&
-      message.channel.id !== "805423509174091778"
-    ) {
+    if (!message.member.hasPermission("MENTION_EVERYONE")) {
       return message.channel.send(
-        `You cannot use \$${this.name} here or you are lacking the permission to do so. ${message.author}`
+        `You cannot use \$${this.name} here because you are lacking the permission to do so. ${message.author}`
       );
     }
     if (!isNaN(args[0])) {
+      if (!message.attachments.array()[0]) {
+        return message.channel.send(
+          "You forgot to paste the logs. Press CTRL+V to paste them and then type the command again."
+        );
+      }
       getPageContent(message).then((dropTaxes) => {
         let filter = () => {
           return true;
