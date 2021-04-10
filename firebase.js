@@ -21,12 +21,39 @@ let addAFK = (guild, name, date, period) => {
       afkName: name,
       afkDate: date,
       afkPeriod: period,
+      id: newPostKey,
     };
-    firebase.database().ref(`${guild}/${newPostKey}`).update(data);
+    firebase.database().ref(`afk/${guild}/${newPostKey}`).update(data);
   }
+};
+
+let pullData = async (path) => {
+  let response = await firebase.database().ref(`${path}/`).once("value");
+
+  if (response.code) {
+    throw new Error(response.code);
+  } else {
+    const data = [];
+    response.forEach((v) => {
+      data.push(v.val());
+    });
+    return data;
+  }
+};
+
+let cleanupDates = () => {
+  pullData(`afk/${message.guild.id}`).then((data) => {
+    data.forEach((e) => {
+      if (Date.now() > Date.parse(e.afkDate)) {
+        firebase.database.ref(`afk/${message.guild.id}/${e.id}`).remove();
+      }
+    });
+  });
 };
 
 module.exports = {
   addAfk: addAFK,
-  database: firebase.database(),
+  pullData: pullData,
+  cleanupDates: cleanupDates,
+  database: firebase.database,
 };
