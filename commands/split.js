@@ -22,16 +22,6 @@ module.exports = {
       `${message.member.user.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
     );
 
-    if (
-      message.guild.id !== "757911675352645644" &&
-      message.guild.id !== "700374713549193287" &&
-      message.guild.id !== "809702779064811550" &&
-      message.channel.id !== "805423509174091778"
-    ) {
-      return message.channel.send(
-        `You cannot use \$${this.name} here or you are lacking the permission to do so. ${message.author}`
-      );
-    }
     let members = message.guild.member(message.author).voice.channel.members;
     let filteredMembers = members.array().map((element) => {
       return element.bot ? null : element.username;
