@@ -1,0 +1,31 @@
+{
+  "help": {
+    "desc": "This command.",
+    "usage": {
+      "0": "You need help for this? 🤭"
+    }
+  },
+  "taxes": {
+    "desc": "Lets you check who payed taxes and who didn't after proccessing the logs.",
+    "usage": {
+      "0": "Before using the taxes command go into your game and press \"G\". There you'll find two icons next to the search bar, click the first one with the 3 vertical lines.\nhttps://i.imgur.com/8OtZzz2.png",
+      "1": "Click the \"Timeframe\" dropdown and select last week. Now that the logs have loaded click the icon directly above the scroll bar which will copy the contents of the logs to your clipboard.\nhttps://i.imgur.com/kr8qe7Y.png",
+      "2": "Now you can head back to discord and type in the respective channel `$taxes <ammount>` and press CTRL+V which will paste the logs. If you do it right you will get a similar popup to mine. Now hit ENTER or click the Upload button and go back into the game again.\nhttps://i.imgur.com/1pazYX9.png",
+      "3": "Once back in click on the dropdown that says \"Tax Contribution\" and select \"Silver Balance\". Now repeat the same proccess as before (copy the logs, paste them etc) but leave the discord message empty and hit ENTER, the rest is self explanatory.\nhttps://i.imgur.com/ewyKXmd.png",
+      "4": "The bot will then respond with a message similar to this one. If you want everyone to be notified react to the checkmark in the very last message.\nhttps://i.imgur.com/aKAGC9U.png"
+    }
+  },
+  "afk": {
+    "desc": "Adds a user to the afk list. Anyone in that list will be ignored and not included in the final list of \"tax evaders\".",
+    "usage": {
+      "0": "This command is extremely simple and straighforward. The image below should explain it better than I can with words.\nhttps://i.imgur.com/djCylr4.png",
+      "1": "Do note that the list updates automatically if the period is over. No need to worry that someone on the list will be ignore forever."
+    }
+  },
+  "split": {
+    "desc": "Splits everyone in the voice channel of the person that initiated the command into two teams (randomly).",
+    "usage": {
+      "0": "Nothing to read here sorry :C\nhttps://i.kym-cdn.com/entries/icons/original/000/018/784/topkek.png"
+    }
+  }
+}
