@@ -109,12 +109,20 @@ const dmAllUsers = (usernames, m, tax) => {
           if (isNaN(userEl)) {
             members.array().forEach((userObject) => {
               if (userObject.nickname) {
-                if (userObject.nickname.includes(userEl)) {
+                if (
+                  userObject.nickname
+                    .toLowerCase()
+                    .includes(userEl.toLowerCase())
+                ) {
                   users.push(userObject);
-                } else if (userObject.user.username == userEl) {
+                } else if (
+                  userObject.user.username.toLowerCase() == userEl.toLowerCase()
+                ) {
                   users.push(userObject);
                 }
-              } else if (userObject.user.username == userEl) {
+              } else if (
+                userObject.user.username.toLowerCase() == userEl.toLowerCase()
+              ) {
                 users.push(userObject);
               }
             });
