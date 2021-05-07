@@ -4,7 +4,7 @@ const Discord = require("discord.js");
 const { firebase, addAfk, cleanupDates, pullData } = require("../firebase.js");
 const { calculateDate } = require("./afk.js");
 
-const filterData = (data, tax, deposits, guildid) => {
+const filterData = (data, tax, deposits, guildid, members) => {
   if (data) {
     let list = data
       .toString()
@@ -28,6 +28,7 @@ const filterData = (data, tax, deposits, guildid) => {
 
     let lastUserName = "";
     let taxevaders = [];
+
     list.forEach((el) => {
       if (isNaN(el)) {
         lastUserName = el;
@@ -41,12 +42,33 @@ const filterData = (data, tax, deposits, guildid) => {
       if (deposits) {
         if (+el / tax > 1) {
           // the users has donated for x weeks in advance
-          addAfk(
-            guildid,
-            lastUserName,
-            calculateDate(Math.round(+el / tax)),
-            Math.round(+el / tax)
-          );
+          members.forEach((member) => {
+            if (member.nickname) {
+              if (
+                member.nickname
+                  .toLowerCase()
+                  .includes(lastUserName.toLowerCase())
+              ) {
+                addAfk(
+                  guildid,
+                  member.user.id,
+                  calculateDate(Math.floor(+el / tax)),
+                  Math.floor(+el / tax)
+                );
+              }
+            } else if (
+              member.user.username
+                .toLowerCase()
+                .includes(lastUserName.toLowerCase())
+            ) {
+              addAfk(
+                guildid,
+                member.user.id,
+                calculateDate(Math.floor(+el / tax)),
+                Math.floor(+el / tax)
+              );
+            }
+          });
         }
         if (+el >= tax) {
           taxevaders.push(list[index]);
@@ -248,49 +270,55 @@ module.exports = {
               .awaitMessages(filter, { max: 1, timer: 60000, errors: ["time"] })
               .then((secondMessage) => {
                 getPageContent(secondMessage.first()).then((silverDeposits) => {
-                  let taxesList = filterData(
-                    dropTaxes,
-                    args[0],
-                    false,
-                    message.guild.id
-                  );
-                  let depositsList = filterData(
-                    silverDeposits,
-                    args[0],
-                    true,
-                    message.guild.id
-                  );
-                  let cleanedList = cleanupList(taxesList, depositsList);
-                  formatEmbed(cleanedList, message);
-
-                  message.channel
-                    .send(
-                      "React with ✅ to notify (**private message**) all users."
-                    )
-                    .then((m) => m.react("✅"))
-                    .then((m) => {
-                      // filter to the listener. looks for a checkmark reaction from
-                      // the user that's using the bot and no one else
-                      const filter = (reaction, user) => {
-                        return (
-                          reaction.emoji.name === "✅" &&
-                          user.id === message.author.id
-                        );
-                      };
-
-                      const collector = m.message.createReactionCollector(
-                        filter,
-                        {
-                          time: 60000,
-                        }
+                  message.client.guilds.fetch(message.guild.id).then((guild) =>
+                    guild.members.fetch().then((members) => {
+                      let taxesList = filterData(
+                        dropTaxes,
+                        args[0],
+                        false,
+                        message.guild.id,
+                        members
                       );
-                      collector.on("collect", () => {
-                        dmAllUsers(cleanedList, message, args[0]);
-                        return message.channel.send(
-                          "We are done thanks for using **Tax Collector**. If you need help or have questions talk to <@!416970292305461269>"
-                        );
-                      });
-                    });
+                      let depositsList = filterData(
+                        silverDeposits,
+                        args[0],
+                        true,
+                        message.guild.id,
+                        members
+                      );
+                      let cleanedList = cleanupList(taxesList, depositsList);
+                      formatEmbed(cleanedList, message);
+
+                      message.channel
+                        .send(
+                          "React with ✅ to notify (**private message**) all users."
+                        )
+                        .then((m) => m.react("✅"))
+                        .then((m) => {
+                          // filter to the listener. looks for a checkmark reaction from
+                          // the user that's using the bot and no one else
+                          const filter = (reaction, user) => {
+                            return (
+                              reaction.emoji.name === "✅" &&
+                              user.id === message.author.id
+                            );
+                          };
+
+                          const collector = m.message.createReactionCollector(
+                            filter,
+                            {
+                              time: 60000,
+                            }
+                          );
+                          collector.on("collect", () => {
+                            dmAllUsers(cleanedList, message, args[0]);
+                            return message.channel.send(
+                              "We are done thanks for using **Tax Collector**. If you need help or have questions talk to <@!416970292305461269>"
+                            );
+                          });
+                        });
+                    })
+                  );
                 });
               });
           });
