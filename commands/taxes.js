@@ -1,9 +1,10 @@
 const fetch = require("node-fetch");
 const stream = require("stream");
 const Discord = require("discord.js");
-const firebase = require("../firebase.js");
+const { firebase, addAfk, cleanupDates, pullData } = require("../firebase.js");
+const { calculateDate } = require("./afk.js");
 
-const filterData = (data, tax, deposits) => {
+const filterData = (data, tax, deposits, guildid) => {
   if (data) {
     let list = data
       .toString()
@@ -36,14 +37,22 @@ const filterData = (data, tax, deposits) => {
         return;
       }
 
+      let index = list.indexOf(lastUserName);
       if (deposits) {
+        if (+el / tax > 1) {
+          // the users has donated for x weeks in advance
+          addAfk(
+            guildid,
+            lastUserName,
+            calculateDate(Math.round(+el / tax)),
+            Math.round(+el / tax)
+          );
+        }
         if (+el >= tax) {
-          let index = list.indexOf(lastUserName);
           taxevaders.push(list[index]);
           taxevaders.push(list[index + 1]);
         }
       } else if (+el < tax) {
-        let index = list.indexOf(lastUserName);
         taxevaders.push(list[index]);
         taxevaders.push(list[index + 1]);
       }
@@ -130,12 +139,29 @@ const dmAllUsers = (usernames, m, tax) => {
         });
 
         // if a user is in the AFK list remove him from the list of users to be DM'd
-        firebase
-          .pullData(`afk/${guild.id}`)
+        pullData(`afk/${guild.id}`)
           .then((afkData) => {
+            let excused = [];
             let newUsers = users;
             afkData.forEach((el) => {
-              newUsers = newUsers.filter((u) => u.user.id != el.afkName);
+              newUsers = newUsers.filter((u) => u.user.username != el.afkName);
+              members.forEach((member) => {
+                if (member.nickname) {
+                  if (
+                    member.nickname
+                      .toLowerCase()
+                      .includes(el.afkName.toLowerCase())
+                  ) {
+                    excused.push({ 0: member, 1: el.afkDate });
+                  }
+                } else if (
+                  member.user.username
+                    .toLowerCase()
+                    .includes(el.afkName.toLowerCase())
+                ) {
+                  excused.push({ 0: member, 1: el.afkDate });
+                }
+              });
             });
 
             // check for people that are not in the disord
@@ -151,6 +177,13 @@ const dmAllUsers = (usernames, m, tax) => {
 
             let peopleIcouldntDM = [];
             let noDiscord = usernames.filter((el) => isNaN(el));
+
+            // go through everyone that has donated to the guild and message them
+            excused.forEach((u) => {
+              u[0].user.send(
+                `You are exempt from paying until **${u[1]}**.\nThank you for financially supporting OOV! <3`
+              );
+            });
 
             // go through all users and direct message each one
             newUsers.forEach((u) => {
@@ -186,7 +219,7 @@ module.exports = {
   permissions: "",
   description: "Did you pay your taxes?",
   execute(message, args) {
-    firebase.cleanupDates(message.guild.id);
+    cleanupDates(message.guild.id);
     // When someone uses the bot I'll see what they did for easier debugging
     console.log(
       `${message.author.tag} used the bot.\nDate: ${message.createdAt}.\nMessage: ${message.content}\n---------------`
@@ -215,8 +248,18 @@ module.exports = {
               .awaitMessages(filter, { max: 1, timer: 60000, errors: ["time"] })
               .then((secondMessage) => {
                 getPageContent(secondMessage.first()).then((silverDeposits) => {
-                  let taxesList = filterData(dropTaxes, args[0], false);
-                  let depositsList = filterData(silverDeposits, args[0], true);
+                  let taxesList = filterData(
+                    dropTaxes,
+                    args[0],
+                    false,
+                    message.guild.id
+                  );
+                  let depositsList = filterData(
+                    silverDeposits,
+                    args[0],
+                    true,
+                    message.guild.id
+                  );
                   let cleanedList = cleanupList(taxesList, depositsList);
                   formatEmbed(cleanedList, message);
 

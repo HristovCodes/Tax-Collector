@@ -10,6 +10,7 @@ function calculateDate(weeks) {
 }
 
 module.exports = {
+  calculateDate: calculateDate,
   name: "afk",
   args: true,
   usage: "<user> <duration> <reason>",

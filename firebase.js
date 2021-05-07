@@ -16,14 +16,12 @@ firebase.initializeApp(firebaseConfig);
 
 let addAFK = (guild, name, date, period) => {
   if (guild && name && date && period) {
-    let newPostKey = firebase.database().ref().child(guild).push().key;
     let data = {
       afkName: name,
       afkDate: date,
       afkPeriod: period,
-      id: newPostKey,
     };
-    firebase.database().ref(`afk/${guild}/${newPostKey}`).update(data);
+    firebase.database().ref(`afk/${guild}/${name}`).update(data);
   }
 };
 
@@ -45,7 +43,7 @@ let cleanupDates = (guildid) => {
   pullData(`afk/${guildid}`).then((data) => {
     data.forEach((e) => {
       if (Date.now() > Date.parse(e.afkDate)) {
-        firebase.database().ref(`afk/${guildid}/${e.id}`).remove();
+        firebase.database().ref(`afk/${guildid}/${e.afkName}`).remove();
       }
     });
   });
