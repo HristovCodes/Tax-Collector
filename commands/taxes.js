@@ -166,21 +166,9 @@ const dmAllUsers = (usernames, m, tax) => {
             let excused = [];
             let newUsers = users;
             afkData.forEach((el) => {
-              newUsers = newUsers.filter((u) => u.user.username != el.afkName);
+              newUsers = newUsers.filter((u) => u.user.id != el.afkName);
               members.forEach((member) => {
-                if (member.nickname) {
-                  if (
-                    member.nickname
-                      .toLowerCase()
-                      .includes(el.afkName.toLowerCase())
-                  ) {
-                    excused.push({ 0: member, 1: el.afkDate });
-                  }
-                } else if (
-                  member.user.username
-                    .toLowerCase()
-                    .includes(el.afkName.toLowerCase())
-                ) {
+                if (member.user.id == el.afkName) {
                   excused.push({ 0: member, 1: el.afkDate });
                 }
               });
